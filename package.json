@@ -1,8 +1,8 @@
 {
   "name":"zorgkompas-dp6",
-  "version":"6.0.0",
+  "version":"6.0.1",
   "private":true,
   "type":"module",
   "description":"ZorgKompas DP6: interactive prototype based on Figma version 5",
-  "scripts":{"start":"node server.mjs","test":"node --test tests/*.test.mjs","check":"node --check dist/app.mjs && node --check dist/ui.mjs && node --check dist/engine.mjs && node --check dist/simulation.mjs && node --test tests/*.test.mjs"}
+  "scripts":{"start":"node server.mjs","test":"node --test tests/*.test.mjs","check":"node --check server.mjs && node --check dist/privacy.mjs && node --check dist/app.mjs && node --check dist/ui.mjs && node --check dist/engine.mjs && node --check dist/simulation.mjs && node --test tests/*.test.mjs"}
 }

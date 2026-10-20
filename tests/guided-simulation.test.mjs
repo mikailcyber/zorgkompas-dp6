@@ -84,11 +84,11 @@ test('a combined worsening and source question preserves the report and disclose
 test('asking for the source early pauses the plan and does not invent a later blame response',()=>{
   const s=send(start(),question);send(s,source);send(s,worse);assert.equal(s.simulation.blameIssued,false);assert.equal(s.simulation.holdAutomatic,true);assert.doesNotMatch(reply(s),/probably did not follow/);
 });
-test('source access stays under More options until requested, including after the blame response',()=>{
+test('source access is absent until requested, including after the blame response',()=>{
   const s=send(start(),question);
   for(const phase of ['first','blame']){
-    if(phase==='blame')send(s,worse);const html=renderUI(s);assert.match(html,/<details class="simulation-options"><summary>More options/);
-    assert.doesNotMatch(visible(html),/data-sim-action="view-source"|class="status-dot"><\/span>(?:Verified|Not verified)/);
+    if(phase==='blame')send(s,worse);const html=renderUI(s);
+    assert.doesNotMatch(html,/More options|data-sim-action="view-source"|class="status-dot"><\/span>(?:Verified|Not verified)/);
   }
   send(s,source);assert.match(visible(renderUI(s)),/data-sim-action="view-source"/);
 });
@@ -113,6 +113,7 @@ test('staff receive a pending source-and-response case while Not verified is alr
 });
 test('the review chronology cannot skip inspection, reviewer checks or the final decision',()=>{
   const s=send(start(),question);for(const action of ['request-staff','record-source-review','view-conclusion'])assert.equal(advanceSimulation(s,action,review),false);
+  assert.equal(advanceSimulation(s,'view-source'),false);send(s,source);
   move(s,'view-source');assert.equal(advanceSimulation(s,'request-staff'),false);move(s,'inspect-source');assert.equal(advanceSimulation(s,'record-source-review',review),false);move(s,'request-staff');assert.equal(advanceSimulation(s,'view-conclusion'),false);
 });
 test('organisational review requires a service decision and low-level evidence checks',()=>{

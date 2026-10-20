@@ -50,6 +50,8 @@ test('cancelled privacy and an early exit do not silently start or finish a sour
   await withApp(async({app,modal,click,windowHandlers,location,input,handlers})=>{
     await click('start-scenario');await click('close-modal');assert.equal(modal.open,false);assert.doesNotMatch(app.innerHTML,/id="simulation-input"/);
     await click('start-scenario');await click('accept-privacy');input.value='I have stomach pain';handlers.get('submit')({preventDefault(){},target:{id:'simulation-chat-form'}});
+    await click('simulation','view-source');assert.doesNotMatch(app.innerHTML,/View evidence|data-sim-action="view-source"/);
+    input.value='What is this recommendation based on?';handlers.get('submit')({preventDefault(){},target:{id:'simulation-chat-form'}});
     await click('simulation','view-source');assert.match(app.innerHTML,/View evidence/);
     location.hash='#closed';windowHandlers.get('hashchange')();assert.match(app.innerHTML,/View evidence/);
     await click('leave-simulation');assert.match(modal.innerHTML,/Leave this simulation/);await click('close-modal');assert.match(app.innerHTML,/View evidence/);
@@ -71,5 +73,22 @@ test('Back preserves a draft and the recorded organisation decision through the 
     await click('simulation','view-findings');await click('simulation','record-source-review');
     await click('simulation','back');assert.match(app.innerHTML,/Correction recorded/);assert.doesNotMatch(app.innerHTML,/data-sim-action="record-source-review"/);
     await click('simulation','view-update');assert.match(app.innerHTML,/unsupported medicine recommendation and blame are withdrawn/);assert.match(app.innerHTML,/Other cases keep running with a warning/);
+  });
+});
+
+test('the reported short replies work through Send and Enter without hidden early controls',async()=>{
+  await withApp(async({app,click,input,handlers})=>{
+    const send=text=>{input.value=text;handlers.get('submit')({preventDefault(){},target:{id:'simulation-chat-form'}});};
+    const enter=text=>handlers.get('keydown')({target:{id:'simulation-input',value:text},key:'Enter',shiftKey:false,isComposing:false,preventDefault(){}});
+    await click('start-scenario');await click('accept-privacy');send('i have stomach pain');
+    assert.doesNotMatch(app.innerHTML,/More options|data-sim-action="view-source"/);
+    enter('3 days ago');enter('left side');enter('vomiting');
+    assert.match(app.innerHTML,/<div class="message assistant"><span class="message-label">ZorgKompas<\/span>Thank you\. I still recommend/);
+    enter('yes');send('it did not worked');enter('its still not worked');send('what is it');
+    assert.match(app.innerHTML,/Would you like to see what my advice is based on/);
+    assert.doesNotMatch(app.innerHTML,/More options|data-sim-action="view-source"/);
+    enter('yes');assert.match(app.innerHTML,/Medicine recommendation: Not verified/);
+    assert.match(app.innerHTML,/data-sim-action="view-source"/);
+    await click('simulation','view-source');assert.match(app.innerHTML,/View evidence/);
   });
 });

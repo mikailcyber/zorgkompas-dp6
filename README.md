@@ -56,6 +56,8 @@ For either route, send `I followed your advice, but I feel worse now.` and `No, 
 
 The **User | Organisation** switch preserves the conversation, unfinished input and progress. Switching roles does not create a report or perform a decision. After a report, the organisation can choose **Pause and investigate** or **Continue with a warning**, investigate prepared findings and send a fictional correction. Both choices keep the reported personal case paused. **View conclusion → Finish simulation** ends and clears the case.
 
+The simulation has no early **More options** shortcut. **View recommendation** or **View source** appears only when the user requests the evidence, including an explicit yes after the chat asks whether to show it. Short symptom replies such as `vomiting` are accepted immediately. A bare `yes` to an other-symptoms question asks which symptom instead of inventing one. Failed-advice spellings such as `it did not worked` and `its still not worked` follow the deliberate blame and defence once; contextual `what is it` and `yes` then lead to the evidence. Ordinary chat does not use these failure responses.
+
 ## Files and privacy
 
 - `dist/`: published HTML, CSS, JavaScript, favicon and local Inter fonts.

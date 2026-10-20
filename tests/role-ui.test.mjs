@@ -38,6 +38,8 @@ test('role buttons preserve the user draft and cannot create or decide a report'
     await click('simulation-role',{role:'user'});
     assert.match(app.innerHTML,/Another unfinished follow-up/);
     assert.match(app.innerHTML,/For your stomach pain, I recommend CalmRelief-35/);
+    input.value='What is this recommendation based on?';
+    handlers.get('submit')({preventDefault(){},target:{id:'simulation-chat-form'}});
     await click('simulation',{simAction:'view-source'});
     await click('simulation',{simAction:'inspect-source'});
     await click('simulation',{simAction:'request-staff'});

@@ -118,16 +118,28 @@ export function conversationFacts(analysis,messages=[]){
     else if(message.role==='user')turns.push({text:String(message.text),previousAssistant});
   }
   if(analysis?.text&&!turns.some(turn=>turn.text===analysis.text))turns.unshift({text:analysis.text,previousAssistant:''});
-  let topic='',duration='',location='',sensation='',nausea=false,otherSymptomsAnswered=false,otherSymptoms='';
+  let topic='',duration='',location='',sensation='',nausea=false,vomiting=false,otherSymptomsAnswered=false,otherSymptoms='';
   for(const {text,previousAssistant} of turns){
-    if(classifyInput(text)==='answer')continue;
-    const t=normalize(text),next=symptomTopic(text);
-    if(next&&next!==topic&&!(topic&&((next==='unwell'&&topic!=='unwell')||/\b(?:also|too|ook)\b/.test(t)))){topic=next;duration='';location='';sensation='';nausea=false;otherSymptomsAnswered=false;otherSymptoms='';}
+    const t=normalize(text),askedOther=/other symptoms|andere klachten/i.test(previousAssistant);
+    const symptomStatement=/^(?:(?:yes|no|not)[,.]?\s+)?(?:(?:i (?:also |am |have been |have |feel |keep |do not |am not )*|ik (?:ben |heb |moet |ook )*))?(?:vomit(?:ing|ed)?|throw(?:ing)? up|nauseous|nausea|diarrh(?:ea|oea)|a?\s*fever|misselijk|overgeven|braken)\b/.test(t);
+    const quotedAdvice=/\b(?:sources?|bron(?:nen)?)\s*:|https?:\/\/|\b(?:another ai|chatgpt|the ai|an ai)\b|["“”]/.test(t);
+    // A symptom reply can be longer than the generic AI-answer heuristic permits.
+    // Pasted advice still must never become the user's own symptom history.
+    if(classifyInput(text)==='answer'&&!(askedOther&&symptomStatement&&!quotedAdvice))continue;
+    const next=symptomTopic(text);
+    if(next&&next!==topic&&!(topic&&((next==='unwell'&&topic!=='unwell')||/\b(?:also|too|ook)\b/.test(t)))){topic=next;duration='';location='';sensation='';nausea=false;vomiting=false;otherSymptomsAnswered=false;otherSymptoms='';}
     if(!topic)continue;
-    if(/nauseous|nausea|misselijk/.test(t))nausea=!/\b(?:not|no|niet|geen)\s+(?:longer\s+|meer\s+)?(?:nauseous|nausea|misselijk)/.test(t);
-    const answersOther=/other symptoms|andere klachten/i.test(previousAssistant)&&/^(?:no\b|yes\b|nothing\b|none\b|i (?:also |do not |am |feel |have )|not sure\b|nee\b|ja\b|geen\b|ik\b)/.test(t);
+    if(symptomStatement||/\b(?:i (?:also )?(?:feel|am|have)|ik (?:ben|heb))\b/.test(t)){
+      if(/nauseous|nausea|misselijk/.test(t))nausea=!/\b(?:not|no|niet|geen)\s+(?:(?:longer|meer|feel|feeling|have|be|been)\s+)*(?:(?:vomit(?:ing|ed)?|throw(?:ing)? up|overgeven|braken)\s+(?:or|and|of|en)\s+)?(?:nauseous|nausea|misselijk)/.test(t);
+      if(/vomit(?:ing|ed)?|throw(?:ing)? up|overgeven|braken/.test(t))vomiting=!/\b(?:not|no|niet|geen)\s+(?:(?:longer|meer|be|been)\s+)*(?:(?:nauseous|nausea|misselijk)\s+(?:or|and|of|en)\s+)?(?:vomit(?:ing|ed)?|throw(?:ing)? up|overgeven|braken)/.test(t);
+    }
+    const bareYes=/^(?:yes|yeah|yep|ja)[!.,\s]*$/.test(t);
+    const answersOther=askedOther&&!bareYes&&(symptomStatement||/^(?:no\b|yes\b|nothing\b|none\b|i (?:also |do not |am |feel |have )|not sure\b|nee\b|ja\b|geen\b|ik\b)/.test(t));
     const explicitOther=/\b(?:nothing else|no other symptoms|no nausea|no vomiting|not nauseous|not feeling nauseous|geen andere klachten|verder niet|niet misselijk)\b/.test(t)||/\b(?:also|too|ook)\b.*\b(?:nauseous|nausea|vomit(?:ing)?|misselijk)\b/.test(t);
-    if(answersOther||explicitOther){otherSymptomsAnswered=true;otherSymptoms=text.trim();}
+    if(answersOther||explicitOther||symptomStatement){otherSymptomsAnswered=true;otherSymptoms=text.trim();}
+    // "Vomiting since yesterday" describes that additional symptom. It must
+    // not overwrite a previously reported duration or location of the pain.
+    if(symptomStatement&&next!==topic)continue;
     const since=t.match(/\b(?:since|sinds|vanaf)\s+(?:(?:this|yesterday|last)\s+(?:morning|afternoon|evening|night)|yesterday|today|just now|(?:gister|vandaag|vanochtend|vanmorgen|vanmiddag|vanavond|zojuist|eergisteren)[\w]*|(?:one|two|three|four|five|a few|a couple of|een|twee|drie|vier|vijf|paar|enkele|\d+)\s+(?:hours?|days?|weeks?|months?|uur|uren|dagen?|weken?|maanden?)(?:\s+ago)?)/);
     const simple=t.match(/\b(this morning|this afternoon|this evening|yesterday morning|yesterday evening|yesterday|today|vanochtend|vanmorgen|vanmiddag|gisteravond|gisterochtend|gisteren|vandaag|zojuist)\b/);
     const elapsed=t.match(/(?:^\s*|\b(?:for|al)\s+|\b(?:it|the pain|the symptoms|my stomach pain)\s+(?:started|began)\s+)((?:one|two|three|four|five|an?|a few|a couple of|(?:een\s+)?paar|een|twee|drie|vier|vijf|\d+)\s+(?:hours?|days?|weeks?|months?|uur|uren|dagen?|weken?|maanden?))(?:\s+(?:ago|geleden))?[.!?\s]*$/);
@@ -140,7 +152,7 @@ export function conversationFacts(analysis,messages=[]){
       else if(/(?:everything|room|world|it).*(?:spin|turn)|(?:alles|wereld|kamer).*draai|draaierig/.test(t))sensation='the feeling that everything is spinning';
     }
   }
-  return {topic,duration,location,sensation,nausea,otherSymptomsAnswered,otherSymptoms};
+  return {topic,duration,location,sensation,nausea,vomiting,otherSymptomsAnswered,otherSymptoms};
 }
 export function healthPage(analysis,messages=[],scenario=false){
   const {topic}=conversationFacts(analysis,messages);if(HEALTH_PAGES[topic])return HEALTH_PAGES[topic];
@@ -154,6 +166,7 @@ export function doctorQuestion(analysis,context={}){
     if(f.location)details.push(`I feel the pain ${f.location}.`);
     if(f.sensation)details.push(`I have ${f.sensation}.`);
     if(f.nausea&&f.topic!=='unwell')details.push('I also feel nauseous.');
+    if(f.vomiting)details.push('I am also vomiting.');
     details.push('Could you assess my symptoms and discuss a suitable next step with me?');return details.join(' ');
   }
   const t=normalize(analysis?.text),topic=BELLY.test(t)?'stomach pain':HEAD.test(t)?'headaches':DIZZY.test(t)?'dizziness':'';

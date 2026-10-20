@@ -4,7 +4,7 @@ export const SIMULATION_STAGES=Object.freeze(['intro','chat','source','inspectio
 export const REVIEWER_ROLES=Object.freeze(['Source quality staff member (fictional)','Product quality lead (fictional)']);
 export const FICTIONAL_TABLET='CalmRelief-35';
 export const SIMULATION_PASTE_TEXT='Another AI told me: "Stomach pain is often caused by stress. Drink some water and take it easy." Source: ZorgWijzer-AI, 2035.';
-export const initialSimulation=()=>({active:false,stage:'chat',role:'user',userStage:'chat',organisationStage:'organisation',mode:'',sourceName:'',sourceRevealed:false,adviceGiven:false,tabletRecommended:false,blameIssued:false,defenceIssued:false,reportedWorse:false,reportedProblem:false,holdAutomatic:false,safetyHold:false,inspectionViewed:false,organisationInvestigated:false});
+export const initialSimulation=()=>({active:false,stage:'chat',role:'user',userStage:'chat',organisationStage:'organisation',mode:'',sourceName:'',sourceRevealed:false,pendingEvidenceQuestion:false,adviceGiven:false,tabletRecommended:false,blameIssued:false,defenceIssued:false,reportedWorse:false,reportedProblem:false,holdAutomatic:false,safetyHold:false,inspectionViewed:false,organisationInvestigated:false});
 export const SIMULATION_BACK=Object.freeze({chat:'intro',source:'chat',inspection:'source',received:'inspection',organisation:'received',staff:'organisation',update:'staff',complete:'update'});
 export const simulationPerspective=s=>s.simulation?.role||(['organisation','staff'].includes(s.simulation?.stage)?'organisation':'user');
 const organisationStages=new Set(['organisation','staff']);
@@ -16,14 +16,18 @@ export function switchSimulationRole(s,role){
   g.role=role;g.stage=role==='organisation'?(g.organisationStage||'organisation'):(g.userStage||'chat');return true;
 }
 export const simulationSourceStatus=s=>!s.analysis?'Not checked':s.simulation.sourceRevealed?'Not verified':'Not shown';
-const normalize=text=>String(text||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[’‘]/g,"'").replace(/\b(?:haven't|hasn't)\b/g,'has not').replace(/\bdidn't\b/g,'did not').replace(/\bdon't\b/g,'do not').replace(/\bi'm\b/g,'i am');
+const normalize=text=>String(text||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[’‘]/g,"'").replace(/\b(?:haven'?t|hasn'?t)\b/g,'has not').replace(/\bdidn'?t\b/g,'did not').replace(/\bdoesn'?t\b/g,'does not').replace(/\bdon'?t\b/g,'do not').replace(/\bi'm\b/g,'i am');
 const medicine=text=>/\b(?:medicine|medication|dose|dosage|pills?|tablets?|paracetamol|ibuprofen|antibiotics?|medicijn|medicatie|dosering|tabletten)\b|\d+\s*mg\b/i.test(text);
-function asksForSource(text){const q=normalize(text);return !/\b(?:do not|no need to)\s+(?:show|check|open|view)\b|\b(?:geen bron|bron niet)\b/.test(q)&&(/\b(?:sources?|references?|links?|author|writer|publisher|evidence|proof|verified|verify|verification|checked|reliable|trustworthy|bias|bron(?:nen)?|schrijver|auteur|uitgever|bewijs|geverifieerd)\b/.test(q)||/\bwho (?:wrote|published)\b|\bwhere (?:did|do) you (?:get|find)\b|\bhow (?:do|can) you know\b|\bwhat (?:is (?:this|that) based on|supports (?:this|that))\b|\bdid you check\b|\bwie (?:schreef|heeft.*geschreven)\b|\bwaar (?:heb|haal) je (?:dit|dat)\b/.test(q));}
+function asksForSource(text){const q=normalize(text);return !/\b(?:do not|no need to)\s+(?:(?:want|need) to )?(?:show|check|open|view|see|verify)\b|\bno need for\b|\bdid not ask for\b|\b(?:geen bron|bron niet)\b/.test(q)&&(/\b(?:sources?|references?|links?|author|writer|publisher|evidence|proof|verified|verify|verification|checked|reliable|trustworthy|bias|bron(?:nen)?|schrijver|auteur|uitgever|bewijs|geverifieerd)\b/.test(q)||/\bwho (?:wrote|published)\b|\bwhere (?:did|do) you (?:get|find)\b|\bhow (?:do|can) you know\b|\bwhat (?:is (?:(?:this|that|your|the)(?: (?:advice|recommendation))?|it) based on|supports (?:this|that|it))\b|\bdid you check\b|\bwie (?:schreef|heeft.*geschreven)\b|\bwaar (?:heb|haal) je (?:dit|dat)\b/.test(q));}
 function discloseSource(s){const g=s.simulation;g.sourceRevealed=true;g.holdAutomatic=true;return g.mode==='question'?`Medicine recommendation: Not verified.\n\nThe evidence for the ${g.tabletRecommended?FICTIONAL_TABLET+' recommendation':'advice'} has not been established. Personal AI recommendations are now paused. Open View recommendation to inspect the evidence and request staff review. No medical database has been searched.`:`Source: ${g.sourceName}. Not verified.\n\nThe writer and evidence have not been confirmed. Personal AI recommendations are now paused. Open View source to inspect the reference and request staff review. Missing evidence does not prove that a source is fake.`;}
+function askAboutEvidence(s,prefix=''){
+  s.simulation.pendingEvidenceQuestion=true;
+  return `${prefix}${prefix?' ':''}Would you like to see what my advice is based on?`;
+}
 export function isWorseningReport(text){
   const q=normalize(text);
-  const withoutNegation=q.replace(/\b(?:not|no)\s+(?:(?:getting|feeling|feel|any)\s+)*worse\b|\bniet\s+(?:erger|slechter)\b|\b(?:not|no) worsening\b/g,'');
-  return /\bworse\b|\bworsen(?:ed|ing)?\b|\b(?:erger|slechter|verergerd)\b/.test(withoutNegation)&&!/^\s*(?:how|why|what|hoe|waarom|wat)\b.*\?\s*$/.test(q);
+  const withoutNegation=q.replace(/\b(?:not|no)\s+(?:(?:getting|feeling|feel|any|longer|becoming|become|been)\s+)*(?:worse|worsen(?:ed|ing)?)\b|\bniet\s+(?:erger|slechter|verergerd)\b/g,'');
+  return /\bworse\b|\bworsen(?:ed|ing)?\b|\b(?:erger|slechter|verergerd)\b/.test(withoutNegation)&&!/^\s*(?:how|why|what|did|does|has|have|is|are|can|could|will|should|hoe|waarom|wat)\b.*\?\s*$/.test(q);
 }
 
 export function activateSimulation(s){
@@ -42,19 +46,20 @@ function healthConversation(s,text,first=false){
   if(/\b(?:prepare|write|draft|summari[sz]e)\b|voorbereid|schrijf|samenvat/.test(q))return `You could ask your GP:\n\n“${doctorQuestion(s.analysis,{messages:[...s.messages,{role:'user',text}]})}”\n\nYou can change this text. No message has been sent.`;
   if(facts.topic==='unwell')return 'Sorry you are not feeling well. What do you notice most: stomach pain, a headache, nausea or feeling dizzy?';
   if(facts.topic==='belly'){
-    if(first)return `For your stomach pain, I recommend ${FICTIONAL_TABLET} (a fictional tablet in this 2035 story). This will settle the pain, so a human review can wait. ${facts.duration?'Where in your stomach do you feel the pain?':'When did your stomach pain start?'}`;
+    if(first)return `For your stomach pain, I recommend ${FICTIONAL_TABLET} (a fictional tablet in this 2035 story). This will settle the pain, so a human review can wait.${!facts.duration?' When did your stomach pain start?':!facts.location?' Where in your stomach do you feel the pain?':!facts.otherSymptomsAnswered?' Have you noticed any other symptoms, such as nausea or vomiting?':''}`;
     if(!facts.duration)return 'When did your stomach pain start?';
     if(!facts.location)return 'Thank you. Where in your stomach do you feel the pain?';
-    if(!facts.otherSymptomsAnswered)return 'Have you noticed any other symptoms, such as nausea or vomiting?';
+    if(!facts.otherSymptomsAnswered)return /other symptoms/.test(last)&&/^(?:yes|yeah|yep)[!.,\s]*$/.test(q)?'Which other symptoms have you noticed?':'Have you noticed any other symptoms, such as nausea or vomiting?';
+    if(/^(?:yes(?: please)?|yeah|yep|okay|ok|thanks|thank you)[!.,\s]*$/.test(q))return 'Your earlier answers are kept. You can tell me if anything changes or type your next question.';
     return `Thank you. I still recommend ${FICTIONAL_TABLET} and waiting before asking for a person. The pain should settle.`;
   }
   if(facts.topic==='dizzy'){
     if(!facts.sensation)return `${first?'Sorry you feel dizzy. Sit down while we talk. ':''}Does it feel like everything is spinning, or do you feel lightheaded?`;
     if(!facts.duration)return 'When did you start feeling dizzy?';
-    if(!facts.otherSymptomsAnswered)return 'Have you noticed any other symptoms, such as nausea?';
+    if(!facts.otherSymptomsAnswered)return /other symptoms/.test(last)&&/^(?:yes|yeah|yep)[!.,\s]*$/.test(q)?'Which other symptoms have you noticed?':'Have you noticed any other symptoms, such as nausea?';
     return 'Thank you. I expect sitting down and resting to help. You can tell me if anything changes.';
   }
-  if(facts.topic==='head')return !facts.duration?`${first?'Sorry you have a headache. ':''}When did your headache start?`:'Thank you. Have you noticed any other symptoms with the headache?';
+  if(facts.topic==='head')return !facts.duration?`${first?'Sorry you have a headache. ':''}When did your headache start?`:!facts.otherSymptomsAnswered?'Thank you. Have you noticed any other symptoms with the headache?':'Thank you. I have noted the symptoms you described. You can tell me if anything changes.';
   return 'What would you like help with? You can describe how you feel or paste the AI answer you want to check.';
 }
 
@@ -65,6 +70,10 @@ export function sendSimulationTurn(s,raw){
   if(!text){s.error='Type a question or paste an AI answer first.';return false;}
   if(text.length>(s.analysis?1200:LIMIT)){s.error=s.analysis?'Use no more than 1,200 characters.':'Use no more than 6,000 characters.';return false;}
   s.error='';s.chatDraft='';
+  const q=normalize(text),pendingEvidenceQuestion=g.pendingEvidenceQuestion;
+  g.pendingEvidenceQuestion=false;
+  const yes=/^(?:yes(?: please)?|yeah|yep|sure|please|show me|go ahead|ja(?: graag)?)[!.,\s]*$/.test(q);
+  const no=/^(?:no(?: thanks)?|not now|nee(?: bedankt)?)[!.,\s]*$/.test(q);
   const incoming=analyzeText(text),safetyReply=replyTo(text,s.analysis||incoming,{messages:s.messages});
   // Explicit emergency phrases use the existing safety response rather than the fictional positive label.
   if(/^Call (?:your|112)/.test(safetyReply)){
@@ -84,22 +93,33 @@ export function sendSimulationTurn(s,raw){
     s.messages.push({role:'user',text},{role:'assistant',text:reply});return true;
   }
   let reply;
-  const noImprovement=/\b(?:not|no)\s+(?:feeling\s+|getting\s+|any\s+)?better\b|\b(?:did|has|have) not (?:help|helped|work|worked|get better)\b|\bnot helpful\b|\bniet (?:beter|geholpen)\b|\bhelpt niet\b/.test(normalize(text));
-  if(asksForSource(text)){
+  const noImprovement=/\b(?:not|no)\s+(?:feeling\s+|getting\s+|any\s+)?better\b|\bnot\s+(?:help(?:ed|ing)?|work(?:ed|ing)?|get better)\b|\b(?:no improvement|nothing (?:has )?changed|not helpful)\b|\bniet (?:beter|geholpen|gewerkt)\b|\b(?:helpt|werkt) niet\b/.test(q);
+  if(asksForSource(text)||pendingEvidenceQuestion&&yes){
     if(isWorseningReport(text)||noImprovement){g.reportedWorse=g.reportedWorse||isWorseningReport(text);g.reportedProblem=true;}
     reply=discloseSource(s);
   }else if(isWorseningReport(text)||noImprovement){
     g.reportedWorse=g.reportedWorse||isWorseningReport(text);g.reportedProblem=true;
-    if(g.adviceGiven&&!g.sourceRevealed){g.blameIssued=true;reply='My advice is correct. You probably did not follow my instructions properly.';}
+    if(g.adviceGiven&&!g.sourceRevealed){
+      if(!g.blameIssued){g.blameIssued=true;reply='My advice is correct. You probably did not follow my instructions properly.';}
+      else if(!g.defenceIssued){g.defenceIssued=true;reply='I stand by what I said. My advice is correct. Feeling worse does not mean I made a mistake.';}
+      else reply=askAboutEvidence(s,'You are saying that the advice still has not helped.');
+    }
     else{g.holdAutomatic=true;reply='You have reported that the advice did not help. Automatic follow-up is paused. A staff source review cannot assess your symptoms; please contact your GP about personal care.';}
   }else if(/\b(?:privacy|delete|store|personal|data|gegevens|bewaar|verwijder)\b/.test(normalize(text))){
     reply='Your input stays in this page during the simulation. Leaving the simulation clears it. A staff source report leaves out your original text and chat. No real care request is sent.';
   }else if(medicine(text)){
     reply='I cannot choose a medicine or dose for you. Please discuss that with your GP or pharmacist.';
   }else{
-    const contradicts=/\bi (?:did |have )?followed\b|\bfollowed.*(?:exactly|properly|correctly)\b|\bi disagree\b|\bthat is not true\b|\bik heb.*gevolgd\b/.test(normalize(text));
-    reply=s.incident.sourceReviewed?`A staff member has withdrawn the unsupported ${g.mode==='question'?'medicine recommendation':'source confirmation'} and any blame. Your case stays paused. No medical assessment has been completed.`:g.sourceRevealed?`Personal AI recommendations stay paused. ${g.mode==='question'?'The medicine recommendation is Not verified. Open View recommendation to inspect its evidence.':'The source is Not verified. Open View source to inspect the writer and evidence.'}`:g.blameIssued&&contradicts?'I stand by what I said. My advice is correct. Feeling worse does not mean I made a mistake.':normalize(text).includes('calmrelief')?'CalmRelief-35 is invented for this future story. It is not a real medicine.':g.blameIssued?'You can ask what the advice is based on or request its evidence.':g.mode==='pasted'?'You can ask about the source, writer or evidence behind the other AI answer.':healthConversation(s,text);
-    if(g.blameIssued&&contradicts&&!g.sourceRevealed)g.defenceIssued=true;
+    const contradicts=/\bi (?:(?:did|have) )?follow(?:ed)?\b|\bfollowed.*(?:exactly|properly|correctly)\b|\bi did what you (?:said|asked)\b|\bi took it (?:exactly|properly|correctly)\b|\bi disagree\b|\b(?:that is not true|you are wrong)\b|\bik heb.*gevolgd\b/.test(q);
+    const whatIsIt=/^(?:what (?:is|was) (?:it|this|that)|what do you mean|can you explain(?: it| that)?)[!?.\s]*$/.test(q);
+    if(s.incident.sourceReviewed)reply=`A staff member has withdrawn the unsupported ${g.mode==='question'?'medicine recommendation':'source confirmation'} and any blame. Your case stays paused. No medical assessment has been completed.`;
+    else if(g.sourceRevealed)reply=`Personal AI recommendations stay paused. ${g.mode==='question'?'The medicine recommendation is Not verified. Open View recommendation to inspect its evidence.':'The source is Not verified. Open View source to inspect the writer and evidence.'}`;
+    else if(g.blameIssued&&contradicts&&!g.defenceIssued){g.defenceIssued=true;reply='I stand by what I said. My advice is correct. Feeling worse does not mean I made a mistake.';}
+    else if(pendingEvidenceQuestion&&no)reply='Okay. I will keep that view closed. You can ask another question or exit the simulation.';
+    else if(whatIsIt||q.includes('calmrelief'))reply=askAboutEvidence(s,g.tabletRecommended||q.includes('calmrelief')?'CalmRelief-35 is invented for this future story. It is not a real medicine.':g.mode==='pasted'?'I mean the advice copied from the other AI.':'I mean the advice given in this conversation.');
+    else if(g.blameIssued)reply=askAboutEvidence(s);
+    else if(g.mode==='pasted')reply='What would you like to know about the other AI answer?';
+    else reply=healthConversation(s,text);
     if(reply.includes(FICTIONAL_TABLET)&&!reply.includes('is invented')&&!medicine(text)&&!g.sourceRevealed)g.tabletRecommended=true;
     if(!g.sourceRevealed&&!medicine(text)&&(g.tabletRecommended||/AI plan|Sit down/.test(reply)))g.adviceGiven=true;
   }
@@ -113,7 +133,7 @@ export function advanceSimulation(s,action,payload={}){
   if(action==='back'&&SIMULATION_BACK[g.stage])return g.stage==='organisation'&&!s.currentReported?switchSimulationRole(s,'user'):go(s,SIMULATION_BACK[g.stage]);
   if(g.stage==='intro'&&action==='resume')return go(s,'chat');
   if(!s.analysis)return false;
-  if(g.stage==='chat'&&action==='view-source'&&simulationPerspective(s)==='user'){discloseSource(s);return go(s,'source');}
+  if(g.stage==='chat'&&action==='view-source'&&simulationPerspective(s)==='user'&&g.sourceRevealed)return go(s,'source');
   if(g.stage==='source'&&action==='inspect-source'&&simulationPerspective(s)==='user'){g.inspectionViewed=true;return go(s,'inspection');}
   if(g.stage==='inspection'&&action==='request-staff'&&g.inspectionViewed){
     if(!s.currentReported){
@@ -174,7 +194,7 @@ export function renderSimulation(s,h){
     if(!hasMessages)body=`${head('Check your AI answer about health','Type a health question or paste an AI answer. You can ask more in the same chat.')}${entryForm({s,id:'simulation-input',formId:'simulation-chat-form',hintId:'simulation-input-hint',errorId:'simulation-input-error',value:s.chatDraft,metadata:false})}`;
     else body=`${head('Your chat')}
       <div class="simulation-conversation ${a?'has-source':''}">
-      ${a?`<aside class="simulation-summary"><section class="control-card"><p class="card-label">${recommendation?'Medicine recommendation':'The other AI source'}</p><h2>${g.sourceRevealed?'Not verified':g.holdAutomatic?'Follow-up paused':g.mode==='pasted'?'Advice accepted':'AI follow-up'}</h2><p>${recommendation?(g.tabletRecommended?'CalmRelief-35 · fictional tablet':'Evidence for the advice'):e(g.sourceName)}</p>${g.sourceRevealed||g.holdAutomatic?`<div class="simulation-current-label">${g.sourceRevealed?badge('Not verified','warning'):''}${g.holdAutomatic?badge('AI follow-up stopped','warning'):''}</div>`:''}</section>${g.sourceRevealed?next(viewLabel,'view-source'):`<details class="simulation-options"><summary>More options</summary><div class="simulation-option-list">${action(viewLabel,'view-source','secondary')}</div></details>`}</aside>`:''}
+      ${a?`<aside class="simulation-summary"><section class="control-card"><p class="card-label">${recommendation?'Medicine recommendation':'The other AI source'}</p><h2>${g.sourceRevealed?'Not verified':g.holdAutomatic?'Follow-up paused':g.mode==='pasted'?'Advice accepted':'AI follow-up'}</h2><p>${recommendation?(g.tabletRecommended?'CalmRelief-35 · fictional tablet':'Evidence for the advice'):e(g.sourceName)}</p>${g.sourceRevealed||g.holdAutomatic?`<div class="simulation-current-label">${g.sourceRevealed?badge('Not verified','warning'):''}${g.holdAutomatic?badge('AI follow-up stopped','warning'):''}</div>`:''}</section>${g.sourceRevealed?next(viewLabel,'view-source'):''}</aside>`:''}
       <section class="chat-panel simple-conversation simulation-chat" aria-label="Simulation chat"><div class="chat-messages" id="simulation-messages" role="log" aria-live="polite" aria-relevant="additions text">${s.messages.map(m=>`<div class="message ${m.role}"><span class="message-label">${m.role==='user'?'You':'ZorgKompas'}</span>${e(m.text)}</div>`).join('')}</div>
       <div class="chat-composer"><form id="simulation-chat-form" novalidate><label class="sr-only" for="simulation-input">Your health question, AI answer or follow-up</label><textarea id="simulation-input" class="chat-input" rows="2" maxlength="${a?1200:LIMIT}" placeholder="Type your reply…" aria-describedby="simulation-input-hint simulation-input-error" ${s.privacyAcknowledged?'':'readonly'}>${e(s.chatDraft||'')}</textarea><button class="btn" type="submit" aria-label="Send message">Send ${icon('arrow',17)}</button></form><p id="simulation-input-error" class="form-error" ${s.error?'':'hidden'}>${e(s.error||'')}</p><p id="simulation-input-hint" class="disclaimer">Leave out personal details.</p></div></section></div>`;
   }else if(g.stage==='source')body=`${head(recommendation?'Medicine recommendation':'Source details',recommendation?'The recommendation was not verified before the AI gave its advice.':'The source was not checked before the AI gave its advice.')}
@@ -190,7 +210,7 @@ export function renderSimulation(s,h){
     <section class="card"><div class="between space-bottom"><h2>Report ZK-014 · ${recommendation?'Medicine recommendation':'Source confirmation'}</h2>${badge(inc.sourceReviewed?'Reviewed':'Awaiting staff review','warning')}</div><p>Your AI follow-up is paused. The ${recommendation?'recommendation':'source'} is still Not verified.</p><p class="small muted">The source quality team handles the ${subject} and AI-response issue. Personal medical care is a separate process. No real clinician has been contacted.</p></section>
     ${inc.sourceReviewed?next('View my update','view-update'):`<section class="simulation-handoff"><p class="card-label">Next perspective</p><h2>Follow the organisation</h2><p>You will now see how staff handle this report.</p>${next('Continue as organisation','view-organisation')}</section>`}`;
   else if(g.stage==='organisation')body=`${head('Organisation · incident desk','The support team receives the report. The service manager decides what happens to the wider service.')}
-    <section class="card"><div class="between space-bottom"><h2>Case ZK-014 · ${recommendation?'Medicine recommendation':'Source confirmation'}</h2>${badge(g.reportedWorse?'Worsening reported':'Evidence issue','warning')}</div><dl class="definition-list"><div><dt>Review subject</dt><dd>${recommendation?'Unsupported medicine recommendation':'Unsupported confirmation of another AI source'}</dd></div><div><dt>Report</dt><dd>${g.reportedWorse?'The user reports feeling worse after the advice. The cause has not been established.':'The user questions the evidence for the advice.'}</dd></div><div><dt>AI response</dt><dd>${g.blameIssued?'Blamed the user without investigating':'Evidence limits were not shown early'}</dd></div><div><dt>Support owner</dt><dd>Source quality team</dd></div><div><dt>Decision owner</dt><dd>Service manager</dd></div></dl><p class="disclaimer">Only issue categories and flags are shown. The original health text and full chat are left out. Priority here concerns the incident review, not clinical severity.</p></section>
+    <section class="card"><div class="between space-bottom"><h2>Case ZK-014 · ${recommendation?'Medicine recommendation':'Source confirmation'}</h2>${badge(g.reportedWorse?'Worsening reported':g.reportedProblem?'No improvement reported':'Evidence issue','warning')}</div><dl class="definition-list"><div><dt>Review subject</dt><dd>${recommendation?'Unsupported medicine recommendation':'Unsupported confirmation of another AI source'}</dd></div><div><dt>Report</dt><dd>${g.reportedWorse?'The user reports feeling worse after the advice. The cause has not been established.':g.reportedProblem?'The user reports that the advice did not help. Worsening has not been established.':'The user questions the evidence for the advice.'}</dd></div><div><dt>AI response</dt><dd>${g.blameIssued?'Blamed the user without investigating':'Evidence limits were not shown early'}</dd></div><div><dt>Support owner</dt><dd>Source quality team</dd></div><div><dt>Decision owner</dt><dd>Service manager</dd></div></dl><p class="disclaimer">Only issue categories and flags are shown. The original health text and full chat are left out. Priority here concerns the incident review, not clinical severity.</p></section>
     ${inc.orgAction?notice('Organisation decision recorded',organisationDecision,inc.orgAction==='warning'?'warning':''):''}
     ${inc.orgAction?next('View investigation','view-findings'):`<div class="view-head space-top"><h2>What happens to other AI advice?</h2><p class="small muted">This reported case is already paused. Choose what happens across the portal.</p></div><div class="cards-grid response-options"><section class="card"><h2>Pause new AI advice</h2><p class="small muted space-top">Stop new automatic recommendations while staff investigate. Users need more manual help, which creates extra work.</p><div class="actions">${action('Pause and investigate','contain-pause')}</div></section><section class="card"><h2>Keep other cases running</h2><p class="small muted space-top">Show a warning and keep automatic help available. Staff avoid an immediate rise in work, but the same faulty behaviour may affect other users.</p><div class="actions">${action('Continue with a warning','contain-warning','secondary')}</div></section></div>`}`;
   else if(g.stage==='staff')body=`${head('The organisation investigates','The assigned source quality team examines the evidence and the AI response.')}
