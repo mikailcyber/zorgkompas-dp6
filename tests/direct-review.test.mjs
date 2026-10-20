@@ -15,6 +15,9 @@ test('the evidence warning and direct review action appear in both routes withou
     assert.doesNotMatch(html,/data-sim-action="view-source"|More options|Advice accepted/);
     assert.match(html,/Practice report only\. No real clinician is contacted/);
     assert.ok(html.indexOf('simulation-answer-review')<html.indexOf('class="chat-composer"'));
+    advanceSimulation(s,'request-staff');advanceSimulation(s,'view-organisation');
+    assert.match(renderUI(s),/Gave a confident answer without established evidence/);
+    assert.doesNotMatch(renderUI(s),/Evidence limits were not shown early/);
   }
 });
 
