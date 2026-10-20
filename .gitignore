@@ -1,0 +1,26 @@
+# Only reviewed website code and technical files belong in the public repository.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/package.json
+!/server.mjs
+!/dist/
+!/tests/
+!/.github/
+
+# Research, hosting account metadata, working files and credentials stay local.
+/docs/
+/.openai/
+/.local/
+/output/
+/node_modules/
+**/.env*
+**/*.pdf
+**/*.docx
+**/*.pptx
+**/*.xlsx
+**/*.zip
+**/*.log
+**/Thumbs.db
+**/.DS_Store
