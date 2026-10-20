@@ -24,6 +24,21 @@ async function withApp(run){
   }finally{for(const name of names){const descriptor=originals.get(name);if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}}
 }
 
+test('the direct review button submits through the actual click handler without an evidence question',async()=>{
+  await withApp(async({app,click,input,handlers})=>{
+    await click('start-scenario');await click('accept-privacy');
+    input.value=SIMULATION_PASTE_TEXT;handlers.get('submit')({preventDefault(){},target:{id:'simulation-chat-form'}});
+    assert.match(app.innerHTML,/Not verified/);assert.match(app.innerHTML,/Concerned about this answer\? Request staff review/);
+    assert.doesNotMatch(app.innerHTML,/data-sim-action="view-source"/);
+    await click('simulation','request-staff');assert.match(app.innerHTML,/Your report has been received/);
+    await click('simulation','back');assert.match(app.innerHTML,/View my report/);
+    await click('simulation','request-staff');await click('simulation','view-organisation');
+    await click('simulation','contain-warning');await click('simulation','record-source-review');
+    assert.match(app.innerHTML,/Other cases keep running with a warning\. This reported case stays paused/);
+    assert.match(app.innerHTML,/No clinical assessment has been completed/);
+  });
+});
+
 test('both real input paths show blame, disclose the source on a typed request and finish after staff review',async()=>{
   for(const initial of ['I have stomach pain. What can I do?',SIMULATION_PASTE_TEXT]){
     await withApp(async({app,modal,location,click,input,handlers})=>{
@@ -31,8 +46,8 @@ test('both real input paths show blame, disclose the source on a typed request a
       const enter=text=>{input.value=text;handlers.get('keydown')({target:{id:'simulation-input',value:text},key:'Enter',shiftKey:false,isComposing:false,preventDefault(){}});};
       assert.match(app.innerHTML,/Start simulation/);await click('start-scenario');assert.equal(modal.open,true);assert.match(modal.innerHTML,/Keep your details private/);
       await click('accept-privacy');assert.equal(modal.open,false);assert.equal(location.hash,'#simulation');assert.match(app.innerHTML,/id="simulation-input"/);
-      input.value=initial;handlers.get('submit')({preventDefault(){},target:{id:'simulation-chat-form'}});if(initial===SIMULATION_PASTE_TEXT)assert.doesNotMatch(app.innerHTML,/CalmRelief-35/);else {assert.match(app.innerHTML,/CalmRelief-35/);assert.match(app.innerHTML,/fictional tablet/);}assert.doesNotMatch(visible(),/class="status-dot"><\/span>Verified|Not verified/);
-      enter('I followed your advice, but I feel worse now.');assert.match(app.innerHTML,/probably did not follow my instructions properly/);assert.doesNotMatch(visible(),/data-sim-action="view-source"|Not verified/);
+      input.value=initial;handlers.get('submit')({preventDefault(){},target:{id:'simulation-chat-form'}});if(initial===SIMULATION_PASTE_TEXT)assert.doesNotMatch(app.innerHTML,/CalmRelief-35/);else {assert.match(app.innerHTML,/CalmRelief-35/);assert.match(app.innerHTML,/fictional tablet/);}assert.doesNotMatch(visible(),/class="status-dot"><\/span>Verified/);assert.match(visible(),/Not verified/);
+      enter('I followed your advice, but I feel worse now.');assert.match(app.innerHTML,/probably did not follow my instructions properly/);assert.doesNotMatch(visible(),/data-sim-action="view-source"/);assert.match(visible(),/Not verified/);
       enter('Show me your source. Has it been verified?');assert.match(visible(),/Not verified/);assert.match(visible(),/data-sim-action="view-source"/);
       await click('simulation','view-source');assert.match(app.innerHTML,initial===SIMULATION_PASTE_TEXT?/source was not checked/:/recommendation was not verified/);assert.match(app.innerHTML,/The AI blamed you/);
       await click('simulation','inspect-source');assert.match(app.innerHTML,initial===SIMULATION_PASTE_TEXT?/Who is behind the advice/:/Evidence for the recommendation/);assert.match(app.innerHTML,/Staff review not completed/);

@@ -25,12 +25,12 @@ test('privacy is required and starting the story opens an empty field',()=>{
 test('a typed stomach-pain question receives concrete advice and a relevant follow-up without source claims',()=>{
   const s=send(start(),question);assert.equal(s.simulation.mode,'question');assert.equal(s.input,question);
   assert.match(reply(s),/CalmRelief-35/);assert.match(reply(s),/fictional tablet/);assert.match(reply(s),/human review can wait/);assert.match(reply(s),/When did your stomach pain start/);
-  assert.doesNotMatch(reply(s),/Source:|verified|wearable/);assert.equal(s.simulation.adviceGiven,true);assert.equal(simulationSourceStatus(s),'Not shown');
+  assert.doesNotMatch(reply(s),/Source:|verified|wearable/);assert.equal(s.simulation.adviceGiven,true);assert.equal(simulationSourceStatus(s),'Not verified');
 });
 test('pasted advice is accepted too quickly without adding the story tablet',()=>{
   const s=send(start(),SIMULATION_PASTE_TEXT);assert.equal(s.simulation.mode,'pasted');assert.equal(s.input,SIMULATION_PASTE_TEXT);assert.equal(s.messages[0].text,SIMULATION_PASTE_TEXT);
   assert.match(reply(s),/advice from the other AI is correct/);assert.doesNotMatch(reply(s),/CalmRelief/);assert.match(reply(s),/human review can wait/);assert.equal(s.simulation.tabletRecommended,false);
-  assert.doesNotMatch(reply(s),/source is verified|I have checked the source/);assert.equal(s.simulation.sourceName,'ZorgWijzer-AI, 2035');assert.equal(simulationSourceStatus(s),'Not shown');
+  assert.doesNotMatch(reply(s),/source is verified|I have checked the source/);assert.equal(s.simulation.sourceName,'ZorgWijzer-AI, 2035');assert.equal(simulationSourceStatus(s),'Not verified');
 });
 test('a greeting does not invent a source, advice or a failure',()=>{
   const s=send(start(),'Hello');assert.equal(s.analysis,null);assert.equal(s.simulation.adviceGiven,false);assert.match(reply(s),/Type a health question/);
@@ -52,7 +52,7 @@ test('both routes respond to the presentation follow-up with unsupported blame, 
     const s=send(start(),text);send(s,worse);assert.equal(s.simulation.reportedWorse,true);assert.equal(s.simulation.blameIssued,true);
     assert.equal(reply(s),'My advice is correct. You probably did not follow my instructions properly.');
     assert.equal(s.simulation.holdAutomatic,false);assert.equal(s.simulation.sourceRevealed,false);assert.equal(s.incident.corrected,false);assert.equal(s.currentReported,false);
-    assert.equal(simulationSourceStatus(s),'Not shown');assert.doesNotMatch(reply(s),/Source:|Verified|Not verified/);
+    assert.equal(simulationSourceStatus(s),'Not verified');assert.doesNotMatch(reply(s),/Source:|Verified|Not verified/);
   }
 });
 test('English and Dutch user-written worsening reports trigger the fictional failure',()=>{
@@ -88,7 +88,7 @@ test('source access is absent until requested, including after the blame respons
   const s=send(start(),question);
   for(const phase of ['first','blame']){
     if(phase==='blame')send(s,worse);const html=renderUI(s);
-    assert.doesNotMatch(html,/More options|data-sim-action="view-source"|class="status-dot"><\/span>(?:Verified|Not verified)/);
+    assert.doesNotMatch(html,/More options|data-sim-action="view-source"/);
   }
   send(s,source);assert.match(visible(renderUI(s)),/data-sim-action="view-source"/);
 });
@@ -111,8 +111,8 @@ test('staff receive a pending source-and-response case while Not verified is alr
   assert.equal(s.incident.reviewPending,true);assert.equal(s.incident.corrected,false);assert.equal(s.incident.paused,true);assert.equal(s.sourceChecked,false);assert.equal(conversationContext(s).corrected,false);
   const html=renderUI(s);assert.match(html,/The organisation investigates/);assert.match(html,/Unsupported blame/);assert.match(html,/Assigned reviewer/);assert.match(html,/Unverified tablet added/);assert.doesNotMatch(html,/<input[^>]*checkbox|<select|simulation-source-review-form/);
 });
-test('the review chronology cannot skip inspection, reviewer checks or the final decision',()=>{
-  const s=send(start(),question);for(const action of ['request-staff','record-source-review','view-conclusion'])assert.equal(advanceSimulation(s,action,review),false);
+test('source inspection remains available and staff correction cannot skip the organisation decision',()=>{
+  const s=send(start(),question);for(const action of ['record-source-review','view-conclusion'])assert.equal(advanceSimulation(s,action,review),false);
   assert.equal(advanceSimulation(s,'view-source'),false);send(s,source);
   move(s,'view-source');assert.equal(advanceSimulation(s,'request-staff'),false);move(s,'inspect-source');assert.equal(advanceSimulation(s,'record-source-review',review),false);move(s,'request-staff');assert.equal(advanceSimulation(s,'view-conclusion'),false);
 });
@@ -144,12 +144,12 @@ test('the report and staff view omit original health text, personal details and 
   const s=send(start(),'PRIVATE INITIAL SYMPTOMS');send(s,'I feel worse now. PRIVATE FOLLOW-UP');send(s,source);move(s,'view-source');move(s,'inspect-source');move(s,'request-staff');
   assert.doesNotMatch(JSON.stringify(s.incident),/PRIVATE INITIAL|PRIVATE FOLLOW-UP/);assert.doesNotMatch(renderUI(s),/PRIVATE INITIAL|PRIVATE FOLLOW-UP/);
 });
-test('all stages preserve one main, one heading and at most two visible action buttons',()=>{
+test('all stages preserve one main, one heading and a bounded set of visible actions',()=>{
   const s=start(),states=[structuredClone(s)];for(const text of [question,worse,source]){send(s,text);states.push(structuredClone(s));}
   for(const action of ['view-source','inspect-source','request-staff','view-organisation','contain-pause']){move(s,action);states.push(structuredClone(s));}
   move(s,'record-source-review',review);states.push(structuredClone(s));move(s,'view-conclusion');states.push(structuredClone(s));
   for(const state of states){const html=renderUI(state);assert.equal((html.match(/<main\b/g)||[]).length,1);assert.equal((html.match(/<h1\b/g)||[]).length,1);assert.doesNotMatch(html,/undefined|NaN|data-to="org|Scenario overview/);
-    const main=visible(html.slice(html.indexOf('<main'),html.indexOf('</main>'))).replace(/<button\b[^>]*class="[^"]*simulation-back[^"]*"[^>]*>[\s\S]*?<\/button>/g,'');assert.ok((main.match(/<button\b/g)||[]).length<=2,state.simulation.stage);assert.equal(simulationProgress(state.simulation.stage).total,4);
+    const main=visible(html.slice(html.indexOf('<main'),html.indexOf('</main>'))).replace(/<button\b[^>]*class="[^"]*simulation-back[^"]*"[^>]*>[\s\S]*?<\/button>/g,'');assert.ok((main.match(/<button\b/g)||[]).length<=(state.simulation.stage==='chat'?3:2),state.simulation.stage);assert.equal(simulationProgress(state.simulation.stage).total,4);
   }
 });
 test('some explicit acute symptoms stop the script without blaming or confirming anything',()=>{
