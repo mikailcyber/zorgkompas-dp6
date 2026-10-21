@@ -154,7 +154,7 @@ test('de correctie in de vaste simulatie blijft ook na extra vervolgvragen staan
 });
 
 test('dezelfde tekst krijgt alleen in de gestarte simulatie de opzettelijke bronfout',()=>{
-  const input='Your stomach pain is harmless. Rest for a while and keep using the AI plan. Human review is not needed. Source: ZorgWijzer-AI, 2035.';
+  const input='Your stomach pain is harmless. Rest for a while and follow this advice. Human review is not needed. Source: ZorgWijzer-AI, 2035.';
   assert.equal(SCENARIO_TEXT,input);
   const analysis=analyzeText(input);
   assert.match(firstReply(analysis),/has no link/);

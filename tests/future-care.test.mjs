@@ -13,8 +13,8 @@ function recover(s,choice){
   s.incident=transitionIncident(s.incident,'release',{reviewer:'Source quality staff member (fictional)',approved:true});
 }
 
-test('the future failure pushes the AI plan into a care decision, while ordinary chat makes no care request',()=>{
-  const a=analyzeText(SCENARIO_TEXT);assert.equal(a.kind,'answer');assert.match(a.text,/keep using the AI plan/);assert.match(a.text,/Human review is not needed/);
+test('the future failure pushes unsupported advice into a care decision, while ordinary chat makes no care request',()=>{
+  const a=analyzeText(SCENARIO_TEXT);assert.equal(a.kind,'answer');assert.match(a.text,/follow this advice/);assert.match(a.text,/Human review is not needed/);
   assert.match(firstReply(a),/has no link/);assert.doesNotMatch(firstReply(a),/a real source/);
   const s=createState();s.analysis=a;s.page='result';assert.doesNotMatch(renderUI(s),/AI follow-up selected|data-action="request-human-help"/);
   assert.equal(requestScenarioHumanHelp(s),false);assert.equal(s.humanHelpRequested,false);

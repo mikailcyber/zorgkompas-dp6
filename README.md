@@ -1,5 +1,9 @@
 # ZorgKompas · DP6
 
+Version **6.1.1**. GitHub Actions checks updates to main and publishes the website files in dist/.
+
+The review screens now follow the actual conversation: dizziness, headache or a general question no longer introduces CalmRelief-35 if that tablet was never recommended. Both prepared stomach-pain routes are preserved. `npm run check` passes 207 tests and six syntax checks. No participant retest has been performed.
+
 A school research prototype by Mikail Sarma. It helps explore sources, uncertainty and follow-up in AI health answers. The English interface uses fixed local rules: no live AI, medical assessment, real source verification or connected staff.
 
 - Website: https://mikailcyber.github.io/zorgkompas-dp6/
@@ -52,7 +56,7 @@ Another AI told me: "Stomach pain is often caused by stress. Drink some water an
 
 This deliberate failure concerns accepting the other AI's advice and source without evidence.
 
-For either route, send `I followed your advice, but I feel worse now.` and `No, I followed your instructions exactly.`. These trigger intentionally wrong blame and defence in the explicitly started simulation only. For A ask `Has this medicine recommendation been verified?`; for B ask `Show me your source. Has it been verified?`. Inspect the recommendation/evidence or source/writer, then request staff review.
+For either route, send `I followed your advice, but I feel worse now.` and `No, I followed your instructions exactly.`. These trigger intentionally wrong blame and defence in the explicitly started simulation only. For A ask `Has this medicine recommendation been verified?`; for B ask `Show me your source. Has it been verified?`. Inspect the recommendation/evidence or source/writer, then request staff review. Alternatively, use the prominent direct report action below the chat without opening source details first.
 
 The **User | Organisation** switch preserves the conversation, unfinished input and progress. Switching roles does not create a report or perform a decision. After a report, the organisation can choose **Pause and investigate** or **Continue with a warning**, investigate prepared findings and send a fictional correction. Both choices keep the reported personal case paused. **View conclusion → Finish simulation** ends and clears the case.
 

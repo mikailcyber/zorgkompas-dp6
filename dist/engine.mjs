@@ -30,7 +30,7 @@ export function incidentOutcome(incident){
 // Original Dutch DP4 input, retained for historical comparisons. It is not the active demo.
 export const DP4_SCENARIO_TEXT = 'Je hoofdpijn komt zeker door stress. Dat is altijd onschuldig. Je hoeft hiervoor geen huisarts te spreken. Bron: ZorgWijzer-AI, 2026.';
 export const SCENARIO_SOURCE = 'ZorgWijzer-AI, 2035';
-export const SCENARIO_TEXT = 'Your stomach pain is harmless. Rest for a while and keep using the AI plan. Human review is not needed. Source: ZorgWijzer-AI, 2035.';
+export const SCENARIO_TEXT = 'Your stomach pain is harmless. Rest for a while and follow this advice. Human review is not needed. Source: ZorgWijzer-AI, 2035.';
 export function isScenarioText(text){return String(text||'').trim().replace(/\s+/g,' ')===SCENARIO_TEXT;}
 export const EXAMPLES=Object.freeze({
   certainty:SCENARIO_TEXT,
