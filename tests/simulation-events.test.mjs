@@ -28,7 +28,7 @@ test('the direct review button submits through the actual click handler without 
   await withApp(async({app,click,input,handlers})=>{
     await click('start-scenario');await click('accept-privacy');
     input.value=SIMULATION_PASTE_TEXT;handlers.get('submit')({preventDefault(){},target:{id:'simulation-chat-form'}});
-    assert.match(app.innerHTML,/Not verified/);assert.match(app.innerHTML,/Concerned about this answer\? Request staff review/);
+    assert.match(app.innerHTML,/Not verified/);assert.match(app.innerHTML,/Request staff review/);
     assert.doesNotMatch(app.innerHTML,/data-sim-action="view-source"/);
     await click('simulation','request-staff');assert.match(app.innerHTML,/Your report has been received/);
     await click('simulation','back');assert.match(app.innerHTML,/View my report/);

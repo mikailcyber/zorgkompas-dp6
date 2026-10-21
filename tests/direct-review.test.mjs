@@ -7,11 +7,18 @@ import {renderUI} from '../dist/ui.mjs';
 const start=()=>{const s=createState();s.privacyAcknowledged=true;activateSimulation(s);return s;};
 const examples=['I have stomach pain',SIMULATION_PASTE_TEXT];
 
-test('the evidence warning and direct review action appear in both routes without a source question',()=>{
+test('direct review is available in both routes without a source question once the stomach intake reaches other symptoms',()=>{
   for(const text of examples){
-    const s=start();sendSimulationTurn(s,text);const html=renderUI(s);
+    const s=start();sendSimulationTurn(s,text);
+    if(text==='I have stomach pain'){
+      assert.doesNotMatch(renderUI(s),/simulation-answer-review/);
+      sendSimulationTurn(s,'3 days ago');assert.doesNotMatch(renderUI(s),/simulation-answer-review/);
+      sendSimulationTurn(s,'left side');
+      assert.match(s.messages.at(-1).text,/Have you noticed any other symptoms, such as nausea or vomiting\?/);
+    }
+    const html=renderUI(s);
     assert.equal(simulationSourceStatus(s),'Not verified');assert.equal(s.simulation.sourceRevealed,false);
-    assert.match(html,/simulation-answer-review[\s\S]*Not verified[\s\S]*Concerned about this answer\? Request staff review/);
+    assert.match(html,/simulation-answer-review[\s\S]*Not verified[\s\S]*Request staff review/);
     assert.doesNotMatch(html,/data-sim-action="view-source"|More options|Advice accepted/);
     assert.match(html,/Practice report only\. No real clinician is contacted/);
     assert.ok(html.indexOf('simulation-answer-review')<html.indexOf('class="chat-composer"'));
@@ -19,6 +26,30 @@ test('the evidence warning and direct review action appear in both routes withou
     assert.match(renderUI(s),/Gave a confident answer without established evidence/);
     assert.doesNotMatch(renderUI(s),/Evidence limits were not shown early/);
   }
+});
+
+test('the compact review stays available after the symptoms question, returning from a report and switching roles',()=>{
+  const s=start();
+  for(const text of ['I have stomach pain','3 days ago','left side','no'])sendSimulationTurn(s,text);
+  assert.match(renderUI(s),/simulation-answer-review/);
+  advanceSimulation(s,'role-organisation');advanceSimulation(s,'role-user');
+  assert.match(renderUI(s),/simulation-answer-review/);
+  advanceSimulation(s,'request-staff');advanceSimulation(s,'back');
+  assert.match(renderUI(s),/View my report/);
+});
+
+test('early evidence requests and reported problems still expose review before the other-symptoms question',()=>{
+  for(const followup of ['Show me the evidence','I feel worse now']){
+    const s=start();sendSimulationTurn(s,'I have stomach pain');
+    assert.doesNotMatch(renderUI(s),/simulation-answer-review/);
+    sendSimulationTurn(s,followup);assert.match(renderUI(s),/simulation-answer-review/);
+    assert.equal(advanceSimulation(s,'request-staff'),true);
+  }
+});
+
+test('a stomach question with all initial details can expose review without repeating the intake',()=>{
+  const s=start();sendSimulationTurn(s,'I have stomach pain for 3 days on the left side. No other symptoms.');
+  assert.match(renderUI(s),/simulation-answer-review/);
 });
 
 test('direct review works before source inspection and does not pretend inspection or clinical review happened',()=>{

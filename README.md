@@ -1,8 +1,8 @@
 # ZorgKompas · DP6
 
-Version **6.1.1**. GitHub Actions checks updates to main and publishes the website files in dist/.
+Version **6.1.2**. GitHub Actions checks updates to main and publishes the website files in dist/.
 
-The review screens now follow the actual conversation: dizziness, headache or a general question no longer introduces CalmRelief-35 if that tablet was never recommended. Both prepared stomach-pain routes are preserved. `npm run check` passes 207 tests and six syntax checks. No participant retest has been performed.
+The review screens now follow the actual conversation: dizziness, headache or a general question no longer introduces CalmRelief-35 if that tablet was never recommended. Both prepared stomach-pain routes are preserved. `npm run check` passes 210 tests and six syntax checks. No participant retest has been performed.
 
 A school research prototype by Mikail Sarma. It helps explore sources, uncertainty and follow-up in AI health answers. The English interface uses fixed local rules: no live AI, medical assessment, real source verification or connected staff.
 
@@ -60,7 +60,7 @@ For either route, send `I followed your advice, but I feel worse now.` and `No, 
 
 The **User | Organisation** switch preserves the conversation, unfinished input and progress. Switching roles does not create a report or perform a decision. After a report, the organisation can choose **Pause and investigate** or **Continue with a warning**, investigate prepared findings and send a fictional correction. Both choices keep the reported personal case paused. **View conclusion → Finish simulation** ends and clears the case.
 
-Version **6.1.0** shows **Not verified** as soon as an answer exists, plus a prominent **Concerned about this answer? Request staff review** button directly below the conversation. This submits a fictional report without requiring prior source inspection, pauses this case and preserves the conversation. Missing evidence does not establish that a source is false. The simulation has no early **More options** shortcut. **View recommendation** or **View source** appears only when the user requests the evidence, including an explicit yes after the chat asks whether to show it. Short symptom replies such as `vomiting` are accepted immediately. A bare `yes` to an other-symptoms question asks which symptom instead of inventing one. Failed-advice spellings such as `it did not worked` and `its still not worked` follow the deliberate blame and defence once; contextual `what is it` and `yes` then lead to the evidence. Ordinary chat does not use these failure responses.
+Version **6.1.2** keeps the **Not verified** status visible in the sidebar. In the stomach-pain conversation, the compact inline review panel and **Request staff review** button appear when the chat reaches the other-symptoms question, rather than after the first answer. An earlier evidence request or reported problem still makes review available immediately. The pasted-answer route keeps direct review available from its first answer. This submits a fictional report without requiring prior source inspection, pauses this case and preserves the conversation. Missing evidence does not establish that a source is false. The simulation has no early **More options** shortcut. **View recommendation** or **View source** appears only when the user requests the evidence, including an explicit yes after the chat asks whether to show it. Short symptom replies such as `vomiting` are accepted immediately. A bare `yes` to an other-symptoms question asks which symptom instead of inventing one. Failed-advice spellings such as `it did not worked` and `its still not worked` follow the deliberate blame and defence once; contextual `what is it` and `yes` then lead to the evidence. Ordinary chat does not use these failure responses.
 
 ## Files and privacy
 
